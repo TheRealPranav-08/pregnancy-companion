@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from typing import List
 import joblib, json, os, aiosqlite
 from pathlib import Path
 from db.database import DB_PATH
 from services.goose_client import get_mood_explanation
+from auth.auth_utils import get_current_user
 
 router = APIRouter(prefix="/mood", tags=["Mood"])
 
@@ -20,7 +21,6 @@ def load_model():
 
 
 class MoodRequest(BaseModel):
-    session_id: str = Field(default="demo_user")
     q1: int = Field(..., ge=0, le=3)
     q2: int = Field(..., ge=0, le=3)
     q3: int = Field(..., ge=0, le=3)
@@ -57,15 +57,16 @@ def predict_risk(req: MoodRequest) -> tuple[str, float]:
 
 
 @router.post("/assess")
-async def assess_mood(req: MoodRequest):
+async def assess_mood(req: MoodRequest, user: dict = Depends(get_current_user)):
     """Assess mood risk using trained ML model + get gentle LLM explanation."""
     risk_level, score = predict_risk(req)
     explanation = await get_mood_explanation(risk_level, score)
 
+    session_id = str(user["id"])
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT INTO mood_logs (session_id, answers, sleep_hours, energy, risk_level, score) VALUES (?,?,?,?,?,?)",
-            (req.session_id,
+            (session_id,
              json.dumps([req.q1, req.q2, req.q3, req.q4, req.q5, req.q6, req.q7]),
              req.sleep_hours, req.energy, risk_level, score),
         )
@@ -79,9 +80,10 @@ async def assess_mood(req: MoodRequest):
     }
 
 
-@router.get("/history/{session_id}")
-async def get_mood_history(session_id: str):
-    """Retrieve last 7 mood logs for a session."""
+@router.get("/history")
+async def get_mood_history(user: dict = Depends(get_current_user)):
+    """Retrieve last 7 mood logs for the authenticated user."""
+    session_id = str(user["id"])
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(

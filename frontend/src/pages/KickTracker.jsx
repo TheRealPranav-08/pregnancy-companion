@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { logKicks, getKickStatus } from '../api'
 import './KickTracker.css'
 
-const SESSION_ID = 'demo_user'
-const STORAGE_SESSIONS = 'aura_kick_sessions'
-const STORAGE_TAPS = 'aura_quick_taps'
+function sessionsKey(uid) { return `aura_kick_sessions_${uid || 'guest'}` }
+function tapsKey(uid) { return `aura_quick_taps_${uid || 'guest'}` }
+function moodKey(uid) { return `aura_mood_history_${uid || 'guest'}` }
 
 /* ─── helpers ─── */
 const fmt2 = n => String(n).padStart(2, '0')
@@ -20,19 +21,19 @@ const niceDateTime = iso => {
 }
 
 /* ─── localStorage helpers ─── */
-function loadSessions() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_SESSIONS)) || [] } catch { return [] }
+function loadSessions(uid) {
+  try { return JSON.parse(localStorage.getItem(sessionsKey(uid))) || [] } catch { return [] }
 }
-function saveSessions(s) { localStorage.setItem(STORAGE_SESSIONS, JSON.stringify(s)) }
-function loadTaps() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_TAPS)) || {} } catch { return {} }
+function saveSessions(uid, s) { localStorage.setItem(sessionsKey(uid), JSON.stringify(s)) }
+function loadTaps(uid) {
+  try { return JSON.parse(localStorage.getItem(tapsKey(uid))) || {} } catch { return {} }
 }
-function saveTaps(t) { localStorage.setItem(STORAGE_TAPS, JSON.stringify(t)) }
+function saveTaps(uid, t) { localStorage.setItem(tapsKey(uid), JSON.stringify(t)) }
 
 /* ─── mood cross-ref ─── */
-function getLatestMoodScore() {
+function getLatestMoodScore(uid) {
   try {
-    const hist = JSON.parse(localStorage.getItem('aura_mood_history')) || []
+    const hist = JSON.parse(localStorage.getItem(moodKey(uid))) || []
     if (!hist.length) return null
     const latest = hist[hist.length - 1]
     return latest.score ?? null
@@ -58,6 +59,8 @@ const TIME_BLOCKS = [
    COMPONENT
    ═══════════════════════════════════════════════════ */
 export default function KickTracker() {
+  const { user } = useAuth()
+  const uid = user?.id
   /* ─── top-level state ─── */
   const [mode, setMode] = useState('session') // 'session' | 'quick'
 
@@ -83,12 +86,12 @@ export default function KickTracker() {
 
   /* ─── load from localStorage on mount ─── */
   useEffect(() => {
-    setSessions(loadSessions())
-    const t = loadTaps()
+    setSessions(loadSessions(uid))
+    const t = loadTaps(uid)
     setTaps(t)
     const today = dayKey()
     setQuickCount(t[today]?.count || 0)
-  }, [])
+  }, [uid])
 
   /* ─── timer tick ─── */
   useEffect(() => {
@@ -150,13 +153,13 @@ export default function KickTracker() {
       status,
     }
 
-    const updated = [entry, ...loadSessions()].slice(0, 50)
+    const updated = [entry, ...loadSessions(uid)].slice(0, 50)
     setSessions(updated)
-    saveSessions(updated)
+    saveSessions(uid, updated)
     setPhase('done')
 
     // also sync to backend
-    try { logKicks({ session_id: SESSION_ID, count: entry.kickCount }) } catch {}
+    try { logKicks({ count: entry.kickCount }) } catch {}
   }, [elapsed, kicks, context, sessionStart])
 
   /* ─── quick tap ─── */
@@ -169,9 +172,9 @@ export default function KickTracker() {
     updated[today].count += 1
     updated[today].timestamps.push(now.toISOString())
     setTaps(updated)
-    saveTaps(updated)
+    saveTaps(uid, updated)
     setQuickCount(updated[today].count)
-    try { logKicks({ session_id: SESSION_ID, count: updated[today].count }) } catch {}
+    try { logKicks({ count: updated[today].count }) } catch {}
   }
 
   /* ─── ripple helper ─── */
@@ -242,7 +245,7 @@ export default function KickTracker() {
 
   /* ─── cross-feature insight ─── */
   function crossInsight() {
-    const moodScore = getLatestMoodScore()
+    const moodScore = getLatestMoodScore(uid)
     if (moodScore === null || moodScore < 10) return null
     const last = sessions[0]
     const qs = quickStatus()

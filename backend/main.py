@@ -5,7 +5,8 @@ import os
 from dotenv import load_dotenv
 
 from db.database import init_db
-from routers import guidance, mood, kicks, journal
+from routers import guidance, mood, kicks, journal, postnatal, chat, voice
+from routers import auth as auth_router
 
 load_dotenv()
 
@@ -41,16 +42,20 @@ Built for the CreateHER Fest #75HER Challenge, targeting women's health.
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_ORIGIN, "http://localhost:3000"],
+    allow_origins=[FRONTEND_ORIGIN, "http://localhost:3000", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router.router, prefix="/api")
 app.include_router(guidance.router, prefix="/api")
 app.include_router(mood.router, prefix="/api")
 app.include_router(kicks.router, prefix="/api")
 app.include_router(journal.router, prefix="/api")
+app.include_router(postnatal.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
+app.include_router(voice.router, prefix="/api")
 
 
 @app.get("/", tags=["Health"])

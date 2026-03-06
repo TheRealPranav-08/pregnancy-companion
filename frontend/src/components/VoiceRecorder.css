@@ -1,0 +1,118 @@
+/* ═══════════════════════════════════════════
+   VoiceRecorder — reusable mic component
+   ═══════════════════════════════════════════ */
+
+.vr-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ─── button base ─── */
+.vr-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--card-border, rgba(255,255,255,.08));
+  background: var(--card-bg, rgba(255,255,255,.04));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .25s ease;
+  flex-shrink: 0;
+}
+
+.vr-btn:hover:not(:disabled) {
+  border-color: var(--rose-500, #f43f5e);
+  background: rgba(244, 63, 94, .12);
+}
+
+.vr-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.vr-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* recording state */
+.vr-btn.vr-recording {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, .15);
+  box-shadow: 0 0 12px rgba(239, 68, 68, .35);
+}
+
+/* pulse animation for the record icon */
+.vr-pulse {
+  animation: vrPulse 1s ease-in-out infinite;
+}
+
+@keyframes vrPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .55; transform: scale(1.18); }
+}
+
+/* spin for processing */
+.vr-spin {
+  animation: vrSpin 1.2s linear infinite;
+}
+
+@keyframes vrSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─── timer bar ─── */
+.vr-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.vr-bar-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+}
+
+.vr-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--rose-500, #f43f5e), #ef4444);
+  transition: width .3s linear;
+}
+
+.vr-seconds {
+  font-size: .75rem;
+  color: var(--text-muted, rgba(255,255,255,.45));
+  white-space: nowrap;
+}
+
+/* ─── processing label ─── */
+.vr-status {
+  font-size: .8rem;
+  color: var(--purple-400, #c084fc);
+  animation: vrFade 1.5s ease-in-out infinite;
+}
+
+.vr-live-text {
+  font-size: .78rem;
+  color: var(--text-secondary, rgba(255,255,255,.7));
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+@keyframes vrFade {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; }
+}

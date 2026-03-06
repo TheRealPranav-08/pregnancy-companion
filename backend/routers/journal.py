@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 import json, re, aiosqlite
 from db.database import DB_PATH
+from auth.auth_utils import get_current_user
 
 router = APIRouter(prefix="/journal", tags=["Journal"])
 
@@ -38,21 +39,21 @@ def extract_tags(text: str) -> list[str]:
 
 
 class JournalEntry(BaseModel):
-    session_id: str = Field(default="demo_user")
     text: str = Field(..., min_length=2, max_length=2000)
 
 
 @router.post("/entry")
-async def add_journal_entry(req: JournalEntry):
+async def add_journal_entry(req: JournalEntry, user: dict = Depends(get_current_user)):
     """Save journal entry and extract keyword tags automatically."""
     tags = extract_tags(req.text)
     tags_json = json.dumps(tags)
-    has_concern = any("🔴" in t for t in tags)
+    has_concern = any("\U0001f534" in t for t in tags)
+    session_id = str(user["id"])
 
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             "INSERT INTO journal_entries (session_id, text, tags) VALUES (?,?,?)",
-            (req.session_id, req.text, tags_json),
+            (session_id, req.text, tags_json),
         )
         await db.commit()
         entry_id = cursor.lastrowid
@@ -70,9 +71,10 @@ async def add_journal_entry(req: JournalEntry):
     }
 
 
-@router.get("/entries/{session_id}")
-async def get_journal_entries(session_id: str, limit: int = 10):
+@router.get("/entries")
+async def get_journal_entries(user: dict = Depends(get_current_user), limit: int = 10):
     """Retrieve recent journal entries with auto-tags."""
+    session_id = str(user["id"])
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(

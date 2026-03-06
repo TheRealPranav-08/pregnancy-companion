@@ -1,47 +1,49 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 import aiosqlite
 from datetime import date
 from db.database import DB_PATH
+from auth.auth_utils import get_current_user
 
 router = APIRouter(prefix="/kicks", tags=["Kick Tracker"])
 
 
 class KickLogRequest(BaseModel):
-    session_id: str = Field(default="demo_user")
     count: int = Field(..., ge=0)
 
 
 @router.post("/log")
-async def log_kicks(req: KickLogRequest):
-    """Log today's kick count for the session."""
+async def log_kicks(req: KickLogRequest, user: dict = Depends(get_current_user)):
+    """Log today's kick count for the authenticated user."""
     today = date.today().isoformat()
+    session_id = str(user["id"])
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
             "SELECT id FROM kick_logs WHERE session_id=? AND logged_date=?",
-            (req.session_id, today)
+            (session_id, today)
         ) as cur:
             existing = await cur.fetchone()
 
         if existing:
             await db.execute(
                 "UPDATE kick_logs SET count=? WHERE session_id=? AND logged_date=?",
-                (req.count, req.session_id, today)
+                (req.count, session_id, today)
             )
         else:
             await db.execute(
                 "INSERT INTO kick_logs (session_id, count, logged_date) VALUES (?,?,?)",
-                (req.session_id, req.count, today)
+                (session_id, req.count, today)
             )
         await db.commit()
 
     return {"message": "Kick count logged", "date": today, "count": req.count}
 
 
-@router.get("/status/{session_id}")
-async def get_kick_status(session_id: str):
+@router.get("/status")
+async def get_kick_status(user: dict = Depends(get_current_user)):
     """Get today's kick count vs baseline average. Flags low activity."""
     today = date.today().isoformat()
+    session_id = str(user["id"])
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(

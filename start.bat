@@ -18,8 +18,14 @@ if not exist ".env" (
     copy .env.example .env
 )
 
-echo [2/4] Installing Python dependencies...
-pip install -r requirements.txt -q
+echo [2/4] Checking Python dependencies...
+if not exist ".deps_installed" (
+    echo       Installing Python dependencies...
+    pip install -r requirements.txt -q
+    echo done > .deps_installed
+) else (
+    echo       Dependencies already installed, skipping.
+)
 
 echo [3/4] Training mood ML model...
 if not exist "ml\mood_model.pkl" (

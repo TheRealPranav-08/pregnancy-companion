@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { assessMood } from '../api'
 import './MoodCheck.css'
 
@@ -64,21 +65,21 @@ const SUGGESTIONS = {
   ],
 }
 
-const STORAGE_KEY = 'aura_mood_history'
+function moodStorageKey(uid) { return `aura_mood_history_${uid || 'guest'}` }
 
-function loadHistory() {
+function loadHistory(uid) {
   try {
-    const data = localStorage.getItem(STORAGE_KEY)
+    const data = localStorage.getItem(moodStorageKey(uid))
     return data ? JSON.parse(data) : []
   } catch {
     return []
   }
 }
 
-function saveAssessment(entry) {
-  const history = loadHistory()
+function saveAssessment(uid, entry) {
+  const history = loadHistory(uid)
   history.push(entry)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
+  localStorage.setItem(moodStorageKey(uid), JSON.stringify(history))
 }
 
 /* ─── Circular Progress Ring ─────────────── */
@@ -139,8 +140,8 @@ function CelebrationOverlay() {
 const SCORE_COLORS = ['#4ade80', '#facc15', '#fb923c', '#f87171']
 
 /* ─── Mood History Timeline ──────────────── */
-function MoodHistory() {
-  const history = loadHistory()
+function MoodHistory({ uid }) {
+  const history = loadHistory(uid)
   const last5 = history.slice(-5)
 
   const dotColor = (level) => {
@@ -180,6 +181,8 @@ function MoodHistory() {
 
 /* ═══════════════════════════════════════════ */
 export default function MoodCheck() {
+  const { user } = useAuth()
+  const uid = user?.id
   const [answers, setAnswers] = useState(Array(7).fill(null))
   const [sleepHours, setSleepHours] = useState(7)
   const [energy, setEnergy] = useState(5)
@@ -212,7 +215,6 @@ export default function MoodCheck() {
     setError(null)
     try {
       const payload = {
-        session_id: 'demo_user',
         q1: answers[0], q2: answers[1], q3: answers[2], q4: answers[3],
         q5: answers[4], q6: answers[5], q7: answers[6],
         sleep_hours: sleepHours,
@@ -245,7 +247,7 @@ export default function MoodCheck() {
     setResult(resultData)
 
     // Save to localStorage
-    saveAssessment({
+    saveAssessment(uid, {
       date: new Date().toISOString(),
       score: phqScore,
       riskLevel: risk.key,
@@ -476,7 +478,7 @@ export default function MoodCheck() {
       </div>
 
       {/* Mood History */}
-      <MoodHistory />
+      <MoodHistory uid={uid} />
 
       {/* Actions */}
       <button className="btn btn-secondary retake-btn" onClick={resetQuiz}>

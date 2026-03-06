@@ -1,7 +1,8 @@
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from services.goose_client import get_weekly_guidance
+from auth.auth_utils import get_current_user
 
 router = APIRouter(prefix="/guidance", tags=["Guidance"])
 
@@ -22,7 +23,7 @@ class GuidanceRequest(BaseModel):
 
 
 @router.post("")
-async def get_guidance(req: GuidanceRequest):
+async def get_guidance(req: GuidanceRequest, user: dict = Depends(get_current_user)):
     """Get personalized weekly pregnancy guidance powered by Goose LLM."""
     guidance = await get_weekly_guidance(
         week=req.week,

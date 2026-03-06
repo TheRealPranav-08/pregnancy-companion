@@ -8,3 +8,8 @@ numpy==1.26.4
 joblib==1.4.0
 aiosqlite==0.20.0
 openai>=1.52.0
+python-jose[cryptography]
+passlib[bcrypt]
+google-generativeai>=0.8.0
+openai-whisper>=20231117
+python-multipart>=0.0.9

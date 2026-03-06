@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const TRIMESTERS = [
   { range: [1, 13], label: 'First Trimester', color: '#4ade80', emoji: '🌱' },
@@ -7,9 +8,77 @@ const TRIMESTERS = [
   { range: [27, 42], label: 'Third Trimester', color: '#c084fc', emoji: '🌟' },
 ]
 
+function calcBabyWeeks(birthDate) {
+  if (!birthDate) return null
+  const birth = new Date(birthDate)
+  const today = new Date()
+  return Math.max(0, Math.floor((today - birth) / (7 * 24 * 60 * 60 * 1000)))
+}
+
 export default function Home() {
   const navigate = useNavigate()
-  const [week, setWeek] = useState(20)
+  const { user } = useAuth()
+  const stage = user?.stage || 'pregnant'
+
+  if (stage === 'postnatal') return <PostnatalHome user={user} navigate={navigate} />
+  return <PregnantHome user={user} navigate={navigate} />
+}
+
+/* ─── Postnatal Home ──────────────────────── */
+function PostnatalHome({ user, navigate }) {
+  const babyWeeks = user?.baby_weeks ?? calcBabyWeeks(user?.baby_birth_date) ?? 0
+
+  const cards = [
+    { emoji: '🍼', title: 'Postnatal Care', desc: 'Personalized guidance for you and your baby', path: '/postnatal' },
+    { emoji: '💜', title: 'Mood Check', desc: "Take today's mental health assessment", path: '/mood' },
+    { emoji: '📓', title: 'Journal', desc: "Log how you're feeling today", path: '/journal' },
+    { emoji: '💬', title: 'Chat with Aura', desc: 'Ask anything about baby care', path: '/chat' },
+  ]
+
+  return (
+    <div style={{ maxWidth: 700 }}>
+      <div style={{ textAlign: 'center', padding: '20px 0 40px' }}>
+        <div style={{ fontSize: 64, marginBottom: 16, filter: 'drop-shadow(0 0 20px rgba(244,63,94,0.4))' }}>{'\u{1F476}'}</div>
+        <h1 style={{
+          fontSize: 32, fontWeight: 800, letterSpacing: '-1px',
+          background: 'linear-gradient(135deg, #fff 0%, #fecdd3 50%, #d8b4fe 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          marginBottom: 12,
+        }}>
+          Welcome back, {user?.name || 'Mom'}! {'\u{1F476}'}
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.6 }}>
+          Your baby is <strong style={{ color: 'var(--rose-400)' }}>{babyWeeks} weeks</strong> old — you're doing amazing!
+        </p>
+      </div>
+
+      <div className="grid-3" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+        {cards.map(card => (
+          <button
+            key={card.path}
+            onClick={() => navigate(card.path)}
+            style={{
+              padding: '24px 18px', borderRadius: 16,
+              border: '1px solid var(--card-border)', background: 'var(--card-bg)',
+              color: 'var(--text-primary)', cursor: 'pointer', textAlign: 'left',
+              fontFamily: 'inherit', transition: 'all 0.2s', backdropFilter: 'blur(16px)',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(244,63,94,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.transform = 'translateY(0)' }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 10 }}>{card.emoji}</div>
+            <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>{card.title}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{card.desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─── Pregnant Home (original) ────────────── */
+function PregnantHome({ user, navigate }) {
+  const [week, setWeek] = useState(user?.pregnancy_week || 20)
   const [dietPref, setDietPref] = useState('vegetarian')
   const [condition, setCondition] = useState('normal')
 
@@ -167,6 +236,7 @@ export default function Home() {
           { emoji: '💜', title: 'Mood Check', desc: 'Take today\'s mental health assessment', path: '/mood' },
           { emoji: '👶', title: 'Count Kicks', desc: 'Track fetal movement patterns', path: '/kicks' },
           { emoji: '📓', title: 'Journal', desc: 'Log how you\'re feeling today', path: '/journal' },
+          { emoji: '💬', title: 'Chat with Aura', desc: 'Ask anything about pregnancy', path: '/chat' },
         ].map(card => (
           <button
             key={card.path}

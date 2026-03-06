@@ -1,0 +1,221 @@
+/* ═══════════════════════════════════════════
+   Stage Selection — Journey Picker
+   ═══════════════════════════════════════════ */
+
+.stage-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.stage-container {
+  max-width: 640px;
+  width: 100%;
+  text-align: center;
+}
+
+.stage-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 24px rgba(244, 63, 94, 0.4));
+}
+
+.stage-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, #fecdd3 50%, #d8b4fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.stage-subtitle {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-bottom: 36px;
+}
+
+.stage-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stage-card {
+  padding: 28px 20px;
+  border-radius: 20px;
+  border: 2px solid var(--card-border);
+  background: var(--card-bg);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  color: var(--text-primary);
+  backdrop-filter: blur(16px);
+}
+
+.stage-card:hover {
+  border-color: rgba(244, 63, 94, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(244, 63, 94, 0.15);
+}
+
+.stage-card.selected {
+  border-color: rgba(244, 63, 94, 0.6);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.12), rgba(192, 132, 252, 0.08));
+  box-shadow: 0 0 24px rgba(244, 63, 94, 0.2);
+}
+
+.stage-card-emoji {
+  font-size: 52px;
+  display: block;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.3));
+}
+
+.stage-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.stage-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ─── Extra Input (week slider / date picker) ── */
+.stage-extra {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(45, 18, 37, 0.6);
+  border: 1px solid var(--card-border);
+  animation: fadeSlideUp 0.3s ease;
+}
+
+.stage-extra label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.stage-extra input[type="range"] {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.stage-extra input[type="date"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.stage-extra input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+
+.stage-week-display {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rose-400);
+}
+
+.stage-delivery-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stage-delivery-pills {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.stage-delivery-pill {
+  padding: 8px 18px;
+  border-radius: 100px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stage-delivery-pill.active {
+  border-color: rgba(244, 63, 94, 0.5);
+  background: rgba(244, 63, 94, 0.12);
+  color: var(--rose-400);
+}
+
+/* ─── Continue Button ────────────────────── */
+.stage-continue {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--rose-500), var(--purple-400));
+  color: white;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(244, 63, 94, 0.3);
+}
+
+.stage-continue:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(244, 63, 94, 0.4);
+}
+
+.stage-continue:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Responsive ─────────────────────────── */
+@media (max-width: 600px) {
+  .stage-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .stage-title {
+    font-size: 22px;
+  }
+
+  .stage-page {
+    padding: 20px;
+  }
+}

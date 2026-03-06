@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { addJournalEntry, getJournalEntries } from '../api'
+import VoiceRecorder from '../components/VoiceRecorder'
 import './Journal.css'
 
-const SESSION_ID = 'demo_user'
-const STORAGE_KEY = 'aura_journal_entries'
+function journalStorageKey(uid) { return `aura_journal_entries_${uid || 'guest'}` }
 
 /* ─── daily prompts (Mon=1 … Sun=0) ─── */
 const PROMPTS = [
@@ -81,10 +82,10 @@ function detectCrossLinks(text) {
 }
 
 /* ─── localStorage helpers ─── */
-function loadEntries() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [] } catch { return [] }
+function loadEntries(uid) {
+  try { return JSON.parse(localStorage.getItem(journalStorageKey(uid))) || [] } catch { return [] }
 }
-function saveEntries(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)) }
+function saveEntries(uid, arr) { localStorage.setItem(journalStorageKey(uid), JSON.stringify(arr)) }
 
 /* ─── date helpers ─── */
 const niceDate = iso => new Date(iso).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -95,6 +96,8 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
    COMPONENT
    ═══════════════════════════════════════════ */
 export default function Journal() {
+  const { user } = useAuth()
+  const uid = user?.id
   const navigate = useNavigate()
   const [text, setText] = useState('')
   const [mood, setMood] = useState(null)
@@ -106,14 +109,30 @@ export default function Journal() {
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [expandedAi, setExpandedAi] = useState(new Set())
   const [showInsights, setShowInsights] = useState(true)
+  const [voiceTags, setVoiceTags] = useState([])
+  const [voiceUrgency, setVoiceUrgency] = useState(null)
+  const [voiceError, setVoiceError] = useState(null)
   const responseRef = useRef(null)
+
+  function handleVoiceResult(result) {
+    setVoiceError(null)
+    const transcript = result.transcription || ''
+    if (transcript) setText(prev => prev ? `${prev} ${transcript}` : transcript)
+    if (result.tags) setVoiceTags(result.tags)
+    if (result.urgency) setVoiceUrgency(result.urgency)
+  }
+
+  function handleVoiceError(msg) {
+    setVoiceError(msg)
+    setTimeout(() => setVoiceError(null), 4000)
+  }
 
   /* load */
   useEffect(() => {
-    const local = loadEntries()
+    const local = loadEntries(uid)
     setEntries(local)
     // also try backend
-    getJournalEntries(SESSION_ID).then(res => {
+    getJournalEntries().then(res => {
       if (res.data?.length && !local.length) {
         const migrated = res.data.map(e => ({
           id: String(e.id),
@@ -128,10 +147,10 @@ export default function Journal() {
           crossLinks: detectCrossLinks(e.text).map(l => l.path),
         }))
         setEntries(migrated)
-        saveEntries(migrated)
+        saveEntries(uid, migrated)
       }
     }).catch(() => {})
-  }, [])
+  }, [uid])
 
   /* submit */
   async function handleSubmit(e) {
@@ -163,10 +182,10 @@ export default function Journal() {
     // save locally
     const updated = [entry, ...entries]
     setEntries(updated)
-    saveEntries(updated)
+    saveEntries(uid, updated)
 
     // also sync to backend
-    try { await addJournalEntry({ session_id: SESSION_ID, text: entry.text }) } catch {}
+    try { await addJournalEntry({ text: entry.text }) } catch {}
 
     setText('')
     setMood(null)
@@ -257,8 +276,27 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* Textarea */}
+          {/* Textarea + Voice */}
           <div className="form-group">
+            <div className="jn-voice-row">
+              <VoiceRecorder mode="process" onResult={handleVoiceResult} onError={handleVoiceError} disabled={submitting} />
+              <span className="jn-voice-label">Record a voice note</span>
+            </div>
+            {voiceError && <p className="jn-voice-error">⚠️ {voiceError}</p>}
+            {voiceTags.length > 0 && (
+              <div className="jn-voice-tags">
+                <span className="jn-detected-label">Voice detected:</span>
+                {voiceTags.map((t, i) => (
+                  <span key={i} className={`jn-tag jn-tag-${t.category}`}>{t.word}</span>
+                ))}
+              </div>
+            )}
+            {voiceUrgency === 'red' && (
+              <div className="jn-urgency jn-urg-red">⚠️ Voice note flagged a potential concern — review below and consult your doctor if needed.</div>
+            )}
+            {voiceUrgency === 'yellow' && (
+              <div className="jn-urgency jn-urg-yellow">🟡 Symptom mentioned in voice note — keep monitoring.</div>
+            )}
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}

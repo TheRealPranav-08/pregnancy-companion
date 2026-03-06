@@ -127,6 +127,30 @@
   margin-top: 6px;
 }
 
+/* Voice row */
+.jn-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.jn-voice-label {
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+.jn-voice-error {
+  font-size: .8rem;
+  color: #ef4444;
+  margin: 4px 0;
+}
+.jn-voice-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+
 /* Quick chips */
 .jn-chip-row {
   display: flex;
